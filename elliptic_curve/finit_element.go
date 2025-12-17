@@ -5,6 +5,7 @@ import (
 	"math/big"
 )
 
+// Represents an element of a finite field
 type FieldElement struct {
 	order *big.Int // field order
 	num   *big.Int // value of the given element in the field

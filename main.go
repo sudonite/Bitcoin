@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	ecc "main/elliptic_curve"
 	"math/big"
 	"math/rand"
+
+	ecc "github.com/sudonite/bitcoin/elliptic_curve"
 )
 
 func SolvField19MultiplieSet() {
