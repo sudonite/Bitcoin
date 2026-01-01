@@ -11,6 +11,14 @@ type FieldElement struct {
 	num   *big.Int // value of the given element in the field
 }
 
+// Creates a field element in the secp256k1 prime field (p = 2^256 - 2^32 - 977)
+func S256Field(num *big.Int) *FieldElement {
+	twoExp256 := new(big.Int).Exp(big.NewInt(2), big.NewInt(256), nil)
+	twoExp32 := new(big.Int).Exp(big.NewInt(2), big.NewInt(32), nil)
+	p := new(big.Int).Sub(new(big.Int).Sub(twoExp256, twoExp32), big.NewInt(977))
+	return NewFieldElement(p, num)
+}
+
 // Init function for FieldElement
 func NewFieldElement(order *big.Int, num *big.Int) *FieldElement {
 	if order.Cmp(num) == -1 {
@@ -64,9 +72,8 @@ func (f *FieldElement) Multiply(other *FieldElement) *FieldElement {
 func (f *FieldElement) Power(power *big.Int) *FieldElement {
 	var op big.Int
 	t := op.Mod(power, op.Sub(f.order, big.NewInt(1)))
-	powerRes := op.Exp(f.num, t, nil)
-	modRes := op.Mod(powerRes, f.order)
-	return NewFieldElement(f.order, modRes)
+	powerRes := op.Exp(f.num, t, f.order)
+	return NewFieldElement(f.order, powerRes)
 }
 
 // Multiplies field element by a scalar
@@ -83,6 +90,12 @@ func (f *FieldElement) Divide(other *FieldElement) *FieldElement {
 	var op big.Int
 	otherReverse := other.Power(op.Sub(f.order, big.NewInt(int64(2))))
 	return f.Multiply(otherReverse)
+}
+
+// Returns the multiplicative inverse using Fermat's little theorem (a^(p-2) mod p)
+func (f *FieldElement) Inverse() *FieldElement {
+	var op big.Int
+	return f.Power(op.Sub(f.order, big.NewInt(int64(2))))
 }
 
 // Checks if elements are from the same field
