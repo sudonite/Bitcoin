@@ -5,6 +5,7 @@ import (
 	"math/big"
 )
 
+// Performs SHA256(SHA256(text)) hashing
 func Hash256(text string) []byte {
 	hashOnce := sha256.Sum256([]byte(text))
 	hashTwice := sha256.Sum256(hashOnce[:])

@@ -6,11 +6,13 @@ import (
 	"math/big"
 )
 
+// Holds a private key and the corresponding curve point
 type PrivateKey struct {
 	secret *big.Int
 	point  *Point
 }
 
+// Creates a new private key and derives its public key from generator G
 func NewPrivateKey(secret *big.Int) *PrivateKey {
 	G := GetGenerator()
 
@@ -20,14 +22,17 @@ func NewPrivateKey(secret *big.Int) *PrivateKey {
 	}
 }
 
+// Returns the private key in hex format
 func (p *PrivateKey) String() string {
 	return fmt.Sprintf("Private key hex: {%s}", p.secret)
 }
 
+// Returns the derived public key point
 func (p *PrivateKey) GetPublicKey() *Point {
 	return p.point
 }
 
+// Signs a hash value z using ECDSA
 func (p *PrivateKey) Sign(z *big.Int) *Signature {
 	G := GetGenerator()
 	n := GetBitcoinValueN()

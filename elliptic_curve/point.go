@@ -211,6 +211,7 @@ func (p *Point) NotEqual(other *Point) bool {
 		!p.y.EqualTo(other.y)
 }
 
+// Verifies an ECDSA signature
 func (p *Point) Verify(z *FieldElement, sig *Signature) bool {
 	sInverse := sig.s.Inverse()
 	u := z.Multiply(sInverse)
