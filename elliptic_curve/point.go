@@ -220,3 +220,16 @@ func (p *Point) Verify(z *FieldElement, sig *Signature) bool {
 	total := (G.ScalarMul(u.num)).Add(p.ScalarMul(v.num))
 	return total.x.num.Cmp(sig.r.num) == 0
 }
+
+// Returns the SEC (Standards for Efficient Cryptography) uncompressed serialization of the point
+func (p *Point) Sec(compressed bool) string {
+	if !compressed {
+		return fmt.Sprintf("04%064x%064x", p.x.num, p.y.num)
+	}
+
+	if new(big.Int).Mod(p.y.num, big.NewInt(2)).Cmp(big.NewInt(0)) == 0 {
+		return fmt.Sprintf("02%064x", p.x.num)
+	} else {
+		return fmt.Sprintf("03%064x", p.x.num)
+	}
+}

@@ -98,6 +98,18 @@ func (f *FieldElement) Inverse() *FieldElement {
 	return f.Power(op.Sub(f.order, big.NewInt(int64(2))))
 }
 
+// Computes the square root of the field element
+func (f *FieldElement) Sqrt() *FieldElement {
+	orderAddOne := new(big.Int).Add(f.order, big.NewInt(1))
+	modRes := new(big.Int).Mod(orderAddOne, big.NewInt(4))
+
+	if modRes.Cmp(big.NewInt(0)) != 0 {
+		panic("order plus one mod 4 is not 0")
+	}
+
+	return f.Power(new(big.Int).Div(orderAddOne, big.NewInt(4)))
+}
+
 // Checks if elements are from the same field
 func (f *FieldElement) checkOrder(other *FieldElement) {
 	if f.order.Cmp(other.order) != 0 {

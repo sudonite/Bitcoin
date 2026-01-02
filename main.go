@@ -1,12 +1,5 @@
 package main
 
-import (
-	"fmt"
-	"math/big"
-
-	ecc "github.com/sudonite/bitcoin/elliptic_curve"
-)
-
 func main() {
 	/*
 		twoExp256 := new(big.Int).Exp(big.NewInt(2), big.NewInt(256), nil)
@@ -67,17 +60,20 @@ func main() {
 		fmt.Printf("verify result is %v\n", verifyRes)
 	*/
 
-	e := big.NewInt(12345)
-	z := new(big.Int)
-	z.SetBytes(ecc.Hash256("Testing my Signing"))
+	/*
+		e := big.NewInt(12345)
+		z := new(big.Int)
+		z.SetBytes(ecc.Hash256("Testing my Signing"))
 
-	privateKey := ecc.NewPrivateKey(e)
-	sig := privateKey.Sign(z)
-	fmt.Printf("sig is %s\n", sig)
+		privateKey := ecc.NewPrivateKey(e)
+		sig := privateKey.Sign(z)
+		fmt.Printf("sig is %s\n", sig)
 
-	pubKey := privateKey.GetPublicKey()
-	n := ecc.GetBitcoinValueN()
-	zField := ecc.NewFieldElement(n, z)
-	res := pubKey.Verify(zField, sig)
-	fmt.Printf("Verify signature result: %v\n", res)
+		pubKey := privateKey.GetPublicKey()
+		n := ecc.GetBitcoinValueN()
+		zField := ecc.NewFieldElement(n, z)
+		res := pubKey.Verify(zField, sig)
+		fmt.Printf("Verify signature result: %v\n", res)
+	*/
+
 }
