@@ -44,12 +44,23 @@ func ParseTransaction(binary []byte) *Transaction {
 		output := NewTransactionOutput(bufReader)
 		transactionOutputs = append(transactionOutputs, output)
 	}
+	transaction.txOutputs = transactionOutputs
 
 	lockTimeBytes := make([]byte, 4)
 	bufReader.Read(lockTimeBytes)
 	transaction.lockTime = LittleEndianToBigInt(lockTimeBytes, LITTLE_ENDIAN_4_BYTES)
 
 	return transaction
+}
+
+// GetScript returns the combined script (scriptSig + scriptPubKey) for the input at index `idx`
+func (t *Transaction) GetScript(idx int, testnet bool) *ScriptSig {
+	if idx < 0 || idx >= len(t.txInputs) {
+		panic("invalid index for transaction input")
+	}
+
+	txInput := t.txInputs[idx]
+	return txInput.Script(testnet)
 }
 
 // Reads the transaction input count, handling possible SegWit marker

@@ -34,7 +34,7 @@ func NewFieldElement(order *big.Int, num *big.Int) *FieldElement {
 
 // String representation of FieldElement
 func (f *FieldElement) String() string {
-	return fmt.Sprintf("FieldElement{order: %s, num: %s}", f.order.String(), f.num.String())
+	return fmt.Sprintf("FieldElement{order: %x, num: %x}", f.order, f.num)
 }
 
 // Checks equality of two field elements

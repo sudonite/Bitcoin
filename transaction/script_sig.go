@@ -7,7 +7,8 @@ import (
 
 // Represents a Bitcoin script
 type ScriptSig struct {
-	cmds [][]byte
+	cmds          [][]byte
+	bitcoinOpCode *BitcoinOpCode
 }
 
 // Script push-data opcode constants
@@ -62,9 +63,42 @@ func NewScriptSig(reader *bufio.Reader) *ScriptSig {
 		panic("parsing script field failed")
 	}
 
+	return InitScriptSig(cmds)
+}
+
+// Creates a new ScriptSig from a list of commands
+func InitScriptSig(cmds [][]byte) *ScriptSig {
+	bitcoinOpCode := NewBitcoinOpCode()
+	bitcoinOpCode.cmds = cmds
 	return &ScriptSig{
-		cmds: cmds,
+		bitcoinOpCode: bitcoinOpCode,
 	}
+}
+
+// Executes all commands in the ScriptSig against the given message hash `z`
+func (s *ScriptSig) Evaluate(z []byte) bool {
+	for s.bitcoinOpCode.HasCmd() {
+		cmd := s.bitcoinOpCode.RemoveCmd()
+		if len(cmd) == 1 {
+			//this is an op code, run it
+			opRes := s.bitcoinOpCode.ExecuteOperation(int(cmd[0]), z)
+			if opRes != true {
+				return false
+			}
+		} else {
+			s.bitcoinOpCode.AppendDataElement(cmd)
+		}
+	}
+
+	if len(s.bitcoinOpCode.stack) == 0 {
+		return false
+	}
+
+	if len(s.bitcoinOpCode.stack[0]) == 0 {
+		return false
+	}
+
+	return true
 }
 
 // Serializes the script with length prefix (varint)
@@ -79,10 +113,18 @@ func (s *ScriptSig) Serialize() []byte {
 	return result
 }
 
+// Combines two ScriptSig scripts into a single ScriptSig
+func (s *ScriptSig) Add(script *ScriptSig) *ScriptSig {
+	cmds := make([][]byte, 0)
+	cmds = append(cmds, s.bitcoinOpCode.cmds...)
+	cmds = append(cmds, script.bitcoinOpCode.cmds...)
+	return InitScriptSig(cmds)
+}
+
 // Serializes script commands without length prefix
 func (s *ScriptSig) rawSerialize() []byte {
 	result := []byte{}
-	for _, cmd := range s.cmds {
+	for _, cmd := range s.bitcoinOpCode.cmds {
 		if len(cmd) == 1 {
 			// only one byte means its an instruction
 			result = append(result, cmd...)

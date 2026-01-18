@@ -1,6 +1,8 @@
 package elliptic_curve
 
 import (
+	"bufio"
+	"bytes"
 	"crypto/sha256"
 	"math/big"
 
@@ -158,4 +160,59 @@ func LittleEndianToBigInt(bytes []byte, length LITTLE_ENDIAN_LENGTH) *big.Int {
 	}
 
 	return nil
+}
+
+// Parses a DER-encoded ECDSA signature and returns a Signature object
+func ParseSigBin(sigBin []byte) *Signature {
+	reader := bytes.NewReader(sigBin)
+	bufReader := bufio.NewReader(reader)
+
+	firstByte := make([]byte, 1)
+	bufReader.Read(firstByte)
+	if firstByte[0] != 0x30 {
+		panic("Bad signature, the first byte is not 0x30")
+	}
+
+	lenBuf := make([]byte, 1)
+	bufReader.Read(lenBuf)
+
+	if lenBuf[0]+2 != byte(len(sigBin)) {
+		panic("Bad signature length")
+	}
+
+	marker := make([]byte, 1)
+	bufReader.Read(marker)
+	if marker[0] != 0x02 {
+		panic("signature marker for r is not 0x02")
+	}
+
+	lenBuf = make([]byte, 1)
+	bufReader.Read(lenBuf)
+
+	rLength := lenBuf[0]
+	rBin := make([]byte, rLength)
+	bufReader.Read(rBin)
+
+	r := new(big.Int)
+	r.SetBytes(rBin)
+
+	marker = make([]byte, 1)
+	bufReader.Read(marker)
+	if marker[0] != 0x02 {
+		panic("Signature marker for s is not 0x02")
+	}
+
+	lenBuf = make([]byte, 1)
+	bufReader.Read(lenBuf)
+	sLength := lenBuf[0]
+	sBin := make([]byte, sLength)
+	bufReader.Read(sBin)
+	s := new(big.Int)
+	s.SetBytes(sBin)
+	if len(sigBin) != int(6+rLength+sLength) {
+		panic("Signature wrong length")
+	}
+
+	n := GetBitcoinValueN()
+	return NewSignature(NewFieldElement(n, r), NewFieldElement(n, s))
 }

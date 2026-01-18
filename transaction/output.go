@@ -9,12 +9,25 @@ import (
 type TransactionOutput struct {
 	amount       *big.Int
 	scriptPubKey *ScriptSig
-	reader       *bufio.Reader
 }
 
 // Creates a new transaction output from a binary reader
 func NewTransactionOutput(reader *bufio.Reader) *TransactionOutput {
+	amountBuf := make([]byte, 8)
+	reader.Read(amountBuf)
+	amount := LittleEndianToBigInt(amountBuf, LITTLE_ENDIAN_8_BYTES)
+	script := NewScriptSig(reader)
 	return &TransactionOutput{
-		reader: reader,
+		amount:       amount,
+		scriptPubKey: script,
 	}
+}
+
+// Serialize converts the TransactionOutput into raw bytes
+func (t *TransactionOutput) Serialize() []byte {
+	result := make([]byte, 0)
+	result = append(result,
+		BigIntToLittleEndian(t.amount, LITTLE_ENDIAN_8_BYTES)...)
+	result = append(result, t.scriptPubKey.Serialize()...)
+	return result
 }
