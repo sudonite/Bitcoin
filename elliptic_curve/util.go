@@ -92,11 +92,13 @@ func EncodeBase58(s []byte) string {
 	return prefix + result
 }
 
+// Computes Base58Check encoding: payload + first 4 bytes of double SHA256 checksum
 func Base58Checksum(s []byte) string {
 	hash256 := Hash256(string(s))
 	return EncodeBase58(append(s, hash256[:4]...))
 }
 
+// Computes HASH160 = RIPEMD160(SHA256(input))s
 func Hash160(s []byte) []byte {
 	sha256 := sha256.Sum256(s)
 	hasher := ripemd160.New()
@@ -108,12 +110,14 @@ func Hash160(s []byte) []byte {
 
 type LITTLE_ENDIAN_LENGTH int
 
+// Byte length selector for little-endian big-int serialization
 const (
 	LITTLE_ENDIAN_2_BYTES = iota
 	LITTLE_ENDIAN_4_BYTES
 	LITTLE_ENDIAN_8_BYTES
 )
 
+// Serializes big.Int into little-endian bytes with fixed length
 func BigIntToLittleEndian(v *big.Int, length LITTLE_ENDIAN_LENGTH) []byte {
 	switch length {
 	case LITTLE_ENDIAN_2_BYTES:
@@ -136,6 +140,7 @@ func BigIntToLittleEndian(v *big.Int, length LITTLE_ENDIAN_LENGTH) []byte {
 	return nil
 }
 
+// Parses little-endian bytes into big.Int assuming fixed length
 func LittleEndianToBigInt(bytes []byte, length LITTLE_ENDIAN_LENGTH) *big.Int {
 	switch length {
 	case LITTLE_ENDIAN_2_BYTES:

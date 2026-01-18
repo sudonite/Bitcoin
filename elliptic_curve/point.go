@@ -243,6 +243,7 @@ func (p *Point) Sec(compressed bool) (string, []byte) {
 	}
 }
 
+// Generates a Bitcoin address from an EC point
 func (p *Point) Address(compressed bool, testnet bool) string {
 	hash160 := p.hash160(compressed)
 	prefix := []byte{}
@@ -255,6 +256,7 @@ func (p *Point) Address(compressed bool, testnet bool) string {
 	return Base58Checksum(append(prefix, hash160...))
 }
 
+// Computes HASH160 of the public key
 func (p *Point) hash160(compressed bool) []byte {
 	_, secBytes := p.Sec(compressed)
 	return Hash160(secBytes)
