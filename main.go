@@ -2,22 +2,54 @@ package main
 
 import (
 	"encoding/hex"
+	"fmt"
+	"math/big"
 
+	ecc "github.com/sudonite/bitcoin/elliptic_curve"
 	tx "github.com/sudonite/bitcoin/transaction"
 )
 
 func main() {
-	// Legacy transaction
-	binaryStr := "0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1000000006b483045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed01210349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278afeffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac19430600"
+	p := new(big.Int)
+	h256 := ecc.Hash256("secret")
+	fmt.Printf("h256: %x\n", h256)
+	p.SetBytes(tx.ReverseByteSlice(h256))
+	fmt.Printf("p is %x\n", p)
+	privateKey := ecc.NewPrivateKey(p)
+	pubKey := privateKey.GetPublicKey()
 
-	binary, err := hex.DecodeString(binaryStr)
+	prevTxHash, err := hex.DecodeString("703158ce66391f094ab2195cfe5579214073ba90997d0b98e6e410ed1b67aa8a")
 	if err != nil {
 		panic(err)
 	}
+	prevTxIndex := big.NewInt(int64(1))
+	txInput := tx.InitTransactionInput(prevTxHash, prevTxIndex)
 
-	transaction := tx.ParseTransaction(binary)
+	/*
+		0.00019756 btc
+		send back 0.0001 to myself, and set 0.00009756 as fee to miners
+	*/
+	changeAmount := big.NewInt(int64(0.0001 * tx.STASHI_PER_BITCOIN))
+	changeH160 := ecc.DecodeBase58("mpNzUycBH6SDU9amLK5raP6Qm71CWNezHv")
+	changeScript := tx.P2pkScript(changeH160)
+	changeOut := tx.InitTransactionOutput(changeAmount, changeScript)
 
-	script := transaction.GetScript(0, false)
+	transaction := tx.InitTransaction(big.NewInt(int64(1)), []*tx.TransactionInput{txInput},
+		[]*tx.TransactionOutput{changeOut}, big.NewInt(int64(0)), true)
 
-	script.Evaluate([]byte{})
+	fmt.Printf("%s\n", transaction)
+
+	//sign the first transaction
+	z := transaction.SignHash(0)
+	zMsg := new(big.Int)
+	zMsg.SetBytes(z)
+	der := privateKey.Sign(zMsg).Der()
+	//add the last byte as hash type
+	sig := append(der, byte(tx.SIGHASH_ALL))
+	_, sec := pubKey.Sec(true)
+	scriptSig := tx.InitScriptSig([][]byte{sig, sec})
+	txInput.SetScriptSig(scriptSig)
+
+	rawTx := transaction.SerializeWithSign(-1)
+	fmt.Printf("raw tx: %x\n", rawTx)
 }

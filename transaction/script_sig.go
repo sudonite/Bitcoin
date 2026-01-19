@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"bufio"
+	"fmt"
 	"math/big"
 )
 
@@ -108,6 +109,7 @@ func (s *ScriptSig) Serialize() []byte {
 	result := []byte{}
 
 	// encode the total length of the script at the head
+	fmt.Printf("total: %+v\n", total)
 	result = append(result, EncodeVarint(big.NewInt(int64(total)))...)
 	result = append(result, rawResult...)
 	return result
@@ -131,10 +133,11 @@ func (s *ScriptSig) rawSerialize() []byte {
 		} else {
 			length := len(cmd)
 			if length <= SCRIPT_DATA_LENGTH_END {
-				// length in the range [0x1, 0x4b]
+				// length in [0x01, 0x4b]
 				result = append(result, byte(length))
 			} else if length > SCRIPT_DATA_LENGTH_END && length < 0x100 {
-				// this is OP_PUSHDATA1 command, push the command then the next byte is data length
+				// this is OP_PUSHDATA1 command,
+				// push the command and then the next byte is the length of the data
 				result = append(result, OP_PUSHDATA1)
 				result = append(result, byte(length))
 			} else if length >= 0x100 && length <= 520 {
@@ -144,6 +147,7 @@ func (s *ScriptSig) rawSerialize() []byte {
 			} else {
 				panic("too long an cmd")
 			}
+
 			// append the chunk of data with given length
 			result = append(result, cmd...)
 		}

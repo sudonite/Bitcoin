@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"bufio"
+	"fmt"
 	"math/big"
 )
 
@@ -21,6 +22,20 @@ func NewTransactionOutput(reader *bufio.Reader) *TransactionOutput {
 		amount:       amount,
 		scriptPubKey: script,
 	}
+}
+
+// InitTransactionOutput creates a new transaction output with the given amount and locking script
+func InitTransactionOutput(amount *big.Int, script *ScriptSig) *TransactionOutput {
+	return &TransactionOutput{
+		amount:       amount,
+		scriptPubKey: script,
+	}
+}
+
+// String returns a human-readable representation of the transaction output
+func (t *TransactionOutput) String() string {
+	return fmt.Sprintf("amount: %v\n scriptPubKey: %x\n", t.amount,
+		t.scriptPubKey.Serialize())
 }
 
 // Serialize converts the TransactionOutput into raw bytes

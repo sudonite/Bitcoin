@@ -308,7 +308,7 @@ func (b *BitcoinOpCode) DecodeNum(element []byte) int64 {
 	if len(element) == 0 {
 		return 0
 	}
-	bigEndian := reverseByteSlice(element)
+	bigEndian := ReverseByteSlice(element)
 	negative := false
 	result := int64(0)
 

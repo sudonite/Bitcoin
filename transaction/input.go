@@ -17,22 +17,24 @@ type TransactionInput struct {
 
 // Parses a transaction input from a binary reader
 func NewTransactionInput(reader *bufio.Reader) *TransactionInput {
+	// first 32 bytes are hash256 of previous transation
 	transactionInput := &TransactionInput{}
 	transactionInput.fetcher = NewTransactionFetcher()
+
 	previousTransaction := make([]byte, 32)
 	reader.Read(previousTransaction)
-	transactionInput.previousTransactionID = reverseByteSlice(previousTransaction)
-	fmt.Printf("previous transaction ID: %x\n", transactionInput.previousTransactionID)
+	// convert it from little endian to big endian
+	// reverse the byte array [0x01, 0x02, 0x03, 0x04] -> [0x04, 0x03, 0x02, 0x01]
+	transactionInput.previousTransactionID = ReverseByteSlice(previousTransaction)
 
+	// 4 bytes for previous transaction index
 	idx := make([]byte, 4)
 	reader.Read(idx)
 	transactionInput.previousTransactionIndex = LittleEndianToBigInt(idx, LITTLE_ENDIAN_4_BYTES)
-	fmt.Printf("previous transaction index: %x\n", transactionInput.previousTransactionIndex)
 
 	transactionInput.scriptSig = NewScriptSig(reader)
-	scriptBuf := transactionInput.scriptSig.Serialize()
-	fmt.Printf("script byte: %x\n", scriptBuf)
 
+	// last four bytes for sequence
 	seqBytes := make([]byte, 4)
 	reader.Read(seqBytes)
 	transactionInput.sequence = LittleEndianToBigInt(seqBytes, LITTLE_ENDIAN_4_BYTES)
@@ -40,12 +42,29 @@ func NewTransactionInput(reader *bufio.Reader) *TransactionInput {
 	return transactionInput
 }
 
+// InitTransactionInput creates a new transaction input referencing a previous output
+func InitTransactionInput(previousTx []byte, previousIndex *big.Int) *TransactionInput {
+	return &TransactionInput{
+		previousTransactionID:    previousTx,
+		previousTransactionIndex: previousIndex,
+		scriptSig:                nil,
+		sequence:                 big.NewInt(0xffffffff),
+	}
+}
+
+// String returns a human-readable representation of the transaction input
+func (t *TransactionInput) String() string {
+	return fmt.Sprintf("previous transaction: %x\n previous tx index: %x\n", t.previousTransactionID, t.previousTransactionIndex)
+}
+
+// SetScriptSig sets the scriptSig for this transaction input
+func (t *TransactionInput) SetScriptSig(sig *ScriptSig) {
+	t.scriptSig = sig
+}
+
 // Returns the value (amount in satoshis) of the referenced UTXO
 func (t *TransactionInput) Value(testnet bool) *big.Int {
-	previousTxID := fmt.Sprintf("%x", t.previousTransactionID)
-	previousTx := t.fetcher.Fetch(previousTxID, testnet)
-	tx := ParseTransaction(previousTx)
-
+	tx := t.getPreviousTx(testnet)
 	return tx.txOutputs[t.previousTransactionIndex.Int64()].amount
 }
 
@@ -62,7 +81,7 @@ func (t *TransactionInput) Script(testnet bool) *ScriptSig {
 // Serialize converts the transaction input into its binary format.
 func (t *TransactionInput) Serialize() []byte {
 	result := make([]byte, 0)
-	result = append(result, reverseByteSlice(t.previousTransactionID)...)
+	result = append(result, ReverseByteSlice(t.previousTransactionID)...)
 	result = append(result,
 		BigIntToLittleEndian(t.previousTransactionIndex,
 			LITTLE_ENDIAN_4_BYTES)...)
@@ -72,11 +91,21 @@ func (t *TransactionInput) Serialize() []byte {
 	return result
 }
 
-// Reverses a byte slice
-func reverseByteSlice(bytes []byte) []byte {
-	reverseBytes := []byte{}
-	for i := len(bytes) - 1; i >= 0; i-- {
-		reverseBytes = append(reverseBytes, bytes[i])
-	}
-	return reverseBytes
+// ReplaceWithScriptPubKey replaces the current scriptSig with the referenced output's scriptPubKey
+func (t *TransactionInput) ReplaceWithScriptPubKey(testnet bool) {
+	t.scriptSig = t.scriptPubKey(testnet)
+}
+
+// scriptPubKey retrieves the locking script (scriptPubKey) from the referenced previous transaction output
+func (t *TransactionInput) scriptPubKey(testnet bool) *ScriptSig {
+	tx := t.getPreviousTx(testnet)
+	return tx.txOutputs[t.previousTransactionIndex.Int64()].scriptPubKey
+}
+
+// getPreviousTx fetches and parses the previous transaction referenced by this input
+func (t *TransactionInput) getPreviousTx(testnet bool) *Transaction {
+	previousTxID := fmt.Sprintf("%x", t.previousTransactionID)
+	previousTX := t.fetcher.Fetch(previousTxID, testnet)
+	tx := ParseTransaction(previousTX)
+	return tx
 }

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"math/big"
+	"strings"
 
 	"github.com/tsuna/endian"
 	"golang.org/x/crypto/ripemd160"
@@ -92,6 +93,32 @@ func EncodeBase58(s []byte) string {
 	}
 
 	return prefix + result
+}
+
+// Decodes a Base58Check-encoded string into raw bytes
+func DecodeBase58(s string) []byte {
+	BASE58_ALPHABET := "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+	num := big.NewInt(int64(0))
+	for _, char := range s {
+		mulOp := new(big.Int)
+		num = mulOp.Mul(num, big.NewInt(int64(58)))
+
+		idx := strings.Index(BASE58_ALPHABET, string(char))
+		if idx == -1 {
+			panic("can't find char in base58 alphabet")
+		}
+		addOp := new(big.Int)
+		num = addOp.Add(num, big.NewInt(int64(idx)))
+	}
+
+	combined := num.Bytes()
+	checksum := combined[len(combined)-4:]
+	h256 := Hash256(string(combined[0 : len(combined)-4]))
+	if bytes.Equal(h256[0:4], checksum) != true {
+		panic("decode base58 checksum error")
+	}
+
+	return combined[1 : len(combined)-4]
 }
 
 // Computes Base58Check encoding: payload + first 4 bytes of double SHA256 checksum

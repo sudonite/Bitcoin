@@ -5,7 +5,13 @@ import (
 	"fmt"
 	"math/big"
 
+	"encoding/binary"
+
 	"github.com/tsuna/endian"
+)
+
+const (
+	STASHI_PER_BITCOIN = 100000000
 )
 
 // Enum for fixed little-endian byte lengths
@@ -21,20 +27,17 @@ const (
 func BigIntToLittleEndian(v *big.Int, length LITTLE_ENDIAN_LENGTH) []byte {
 	switch length {
 	case LITTLE_ENDIAN_2_BYTES:
-		val := v.Int64()
-		littleEndianVal := endian.HostToNetUint16(uint16(val))
-		p := big.NewInt(int64(littleEndianVal))
-		return p.Bytes()
+		bin := make([]byte, 2)
+		binary.LittleEndian.PutUint16(bin, uint16(v.Uint64()))
+		return bin
 	case LITTLE_ENDIAN_4_BYTES:
-		val := v.Int64()
-		littleEndianVal := endian.HostToNetUint32(uint32(val))
-		p := big.NewInt(int64(littleEndianVal))
-		return p.Bytes()
+		bin := make([]byte, 4)
+		binary.LittleEndian.PutUint32(bin, uint32(v.Uint64()))
+		return bin
 	case LITTLE_ENDIAN_8_BYTES:
-		val := v.Int64()
-		littleEndianVal := endian.HostToNetUint64(uint64(val))
-		p := big.NewInt(int64(littleEndianVal))
-		return p.Bytes()
+		bin := make([]byte, 8)
+		binary.LittleEndian.PutUint64(bin, v.Uint64())
+		return bin
 	}
 
 	return nil
@@ -91,6 +94,7 @@ func ReadVarint(reader *bufio.Reader) *big.Int {
 func EncodeVarint(v *big.Int) []byte {
 	if v.Cmp(big.NewInt(0xfd)) < 0 {
 		vBytes := v.Bytes()
+		fmt.Printf("slice: %+v\n", vBytes)
 		return []byte{vBytes[0]}
 	} else if v.Cmp(big.NewInt(0x10000)) < 0 {
 		buf := []byte{0xfd}
@@ -114,4 +118,19 @@ func EncodeVarint(v *big.Int) []byte {
 	}
 
 	panic(fmt.Sprintf("integer too large: %x\n", v))
+}
+
+// Reverses a byte slice
+func ReverseByteSlice(bytes []byte) []byte {
+	reverseBytes := []byte{}
+	for i := len(bytes) - 1; i >= 0; i-- {
+		reverseBytes = append(reverseBytes, bytes[i])
+	}
+	return reverseBytes
+}
+
+// P2pkScript creates a Pay-to-Public-Key-Hash (P2PKH) locking script
+func P2pkScript(h160 []byte) *ScriptSig {
+	scriptContent := [][]byte{[]byte{OP_DUP}, []byte{OP_HASH160}, h160, []byte{OP_EQUALVERIFY}, []byte{OP_CHECKSIG}}
+	return InitScriptSig(scriptContent)
 }
