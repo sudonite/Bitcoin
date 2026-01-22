@@ -182,6 +182,25 @@ func (t *Transaction) Verify() bool {
 	return true
 }
 
+// Checks the transaction is a CoinBase transacion
+func (t *Transaction) IsCoinBase() bool {
+	if len(t.txInputs) != 1 {
+		return false
+	}
+	for i := 0; i < len(t.txInputs[0].previousTransactionID); i++ {
+		if t.txInputs[0].previousTransactionID[i] != 0x00 {
+			return false
+		}
+	}
+
+	coinBaseIdx := big.NewInt(int64(0xffffffff))
+	if t.txInputs[0].previousTransactionIndex.Cmp(coinBaseIdx) != 0 {
+		return false
+	}
+
+	return true
+}
+
 // Reads the transaction input count, handling possible SegWit marker
 func getInputCount(bufReader *bufio.Reader) *big.Int {
 	firstByte, err := bufReader.Peek(1)

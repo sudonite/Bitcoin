@@ -124,6 +124,15 @@ func (s *ScriptSig) Add(script *ScriptSig) *ScriptSig {
 	return InitScriptSig(cmds)
 }
 
+// Prints the script command at the given index to standard output
+func (s *ScriptSig) PrintCmd(idx int) {
+	if idx < 0 || idx >= len(s.bitcoinOpCode.cmds) {
+		fmt.Printf("idx out of range")
+	}
+
+	fmt.Printf("%s\n", string(s.bitcoinOpCode.cmds[idx]))
+}
+
 // Serializes script commands without length prefix
 func (s *ScriptSig) rawSerialize() []byte {
 	result := []byte{}
