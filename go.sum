@@ -2,3 +2,5 @@ github.com/tsuna/endian v0.0.0-20250916161723-9a893f7fbe9b h1:w0Z65FVpz63zkZTI+U
 github.com/tsuna/endian v0.0.0-20250916161723-9a893f7fbe9b/go.mod h1:G2jmZN96ArY43AUug4iDgLj/xYuX9uqOEhpAQegmcPo=
 golang.org/x/crypto v0.46.0 h1:cKRW/pmt1pKAfetfu+RCEvjvZkA9RimPbh7bhFjGVBU=
 golang.org/x/crypto v0.46.0/go.mod h1:Evb/oLKmMraqjZ2iQTwDwvCtJkczlDuTmdJXoZVzqU0=
+golang.org/x/example/hello v0.0.0-20250915201037-7f05d217867b h1:+gZE2jOdiscYByu0606Uw8Ldir2Cecd39Vq/3IEasRA=
+golang.org/x/example/hello v0.0.0-20250915201037-7f05d217867b/go.mod h1:UhUKOXx5fMcLZxwL20DUrWWBBoRYG9Jvc8FiwZhRHCI=
