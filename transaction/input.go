@@ -2,7 +2,9 @@ package transaction
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
+	"io"
 	"math/big"
 )
 
@@ -22,21 +24,21 @@ func NewTransactionInput(reader *bufio.Reader) *TransactionInput {
 	transactionInput.fetcher = NewTransactionFetcher()
 
 	previousTransaction := make([]byte, 32)
-	reader.Read(previousTransaction)
+	io.ReadFull(reader, previousTransaction)
 	// convert it from little endian to big endian
 	// reverse the byte array [0x01, 0x02, 0x03, 0x04] -> [0x04, 0x03, 0x02, 0x01]
 	transactionInput.previousTransactionID = ReverseByteSlice(previousTransaction)
 
 	// 4 bytes for previous transaction index
 	idx := make([]byte, 4)
-	reader.Read(idx)
+	io.ReadFull(reader, idx)
 	transactionInput.previousTransactionIndex = LittleEndianToBigInt(idx, LITTLE_ENDIAN_4_BYTES)
 
 	transactionInput.scriptSig = NewScriptSig(reader)
 
 	// last four bytes for sequence
 	seqBytes := make([]byte, 4)
-	reader.Read(seqBytes)
+	io.ReadFull(reader, seqBytes)
 	transactionInput.sequence = LittleEndianToBigInt(seqBytes, LITTLE_ENDIAN_4_BYTES)
 
 	return transactionInput
@@ -93,7 +95,38 @@ func (t *TransactionInput) Serialize() []byte {
 
 // ReplaceWithScriptPubKey replaces the current scriptSig with the referenced output's scriptPubKey
 func (t *TransactionInput) ReplaceWithScriptPubKey(testnet bool) {
-	t.scriptSig = t.scriptPubKey(testnet)
+	script := t.scriptPubKey(testnet)
+	isP2sh := t.isP2sh(script)
+
+	if !isP2sh {
+		t.scriptSig = script
+	} else {
+		redeemScriptBinary := t.scriptSig.bitcoinOpCode.cmds[len(t.scriptSig.bitcoinOpCode.cmds)-1]
+		redeemScriptReader := bytes.NewReader(redeemScriptBinary)
+		redeemScript := NewScriptSig(bufio.NewReader(redeemScriptReader))
+		t.scriptSig = redeemScript
+	}
+}
+
+// Checks whether the given ScriptPubKey matches the standard P2SH pattern
+func (t *TransactionInput) isP2sh(script *ScriptSig) bool {
+	isP2sh := true
+	if len(script.bitcoinOpCode.cmds[0]) != 1 || script.bitcoinOpCode.cmds[0][0] != OP_HASH160 {
+		// the first element should be OP_HASH160
+		isP2sh = false
+	}
+
+	if len(script.bitcoinOpCode.cmds[1]) == 1 {
+		// the second element should be hash data chunk
+		isP2sh = false
+	}
+
+	if len(script.bitcoinOpCode.cmds[2]) != 1 || script.bitcoinOpCode.cmds[2][0] != OP_EQUAL {
+		// the third element should be OP_EQUAL
+		isP2sh = false
+	}
+
+	return isP2sh
 }
 
 // scriptPubKey retrieves the locking script (scriptPubKey) from the referenced previous transaction output

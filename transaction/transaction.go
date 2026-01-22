@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"math/big"
 
 	ecc "github.com/sudonite/bitcoin/elliptic_curve"
@@ -59,7 +60,7 @@ func ParseTransaction(binary []byte) *Transaction {
 	bufReader := bufio.NewReader(reader)
 
 	verBuf := make([]byte, 4)
-	bufReader.Read(verBuf)
+	io.ReadFull(bufReader, verBuf)
 
 	version := LittleEndianToBigInt(verBuf, LITTLE_ENDIAN_4_BYTES)
 	fmt.Printf("transaction version:%x\n", version)
@@ -84,7 +85,7 @@ func ParseTransaction(binary []byte) *Transaction {
 
 	//get last four bytes for lock time
 	lockTimeBytes := make([]byte, 4)
-	bufReader.Read(lockTimeBytes)
+	io.ReadFull(bufReader, lockTimeBytes)
 	transaction.lockTime = LittleEndianToBigInt(lockTimeBytes, LITTLE_ENDIAN_4_BYTES)
 
 	return transaction
@@ -190,7 +191,7 @@ func getInputCount(bufReader *bufio.Reader) *big.Int {
 
 	if firstByte[0] == 0x00 {
 		skipBuf := make([]byte, 2)
-		_, err := bufReader.Read(skipBuf)
+		_, err := io.ReadFull(bufReader, skipBuf)
 		if err != nil {
 			panic(err)
 		}

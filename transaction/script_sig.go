@@ -3,6 +3,7 @@ package transaction
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"math/big"
 )
 
@@ -30,26 +31,26 @@ func NewScriptSig(reader *bufio.Reader) *ScriptSig {
 	var current_byte byte
 
 	for count < scriptLen {
-		reader.Read(current)
+		io.ReadFull(reader, current)
 		count += 1
 		current_byte = current[0]
 
 		if current_byte >= SCRIPT_DATA_LENGTH_BEGIN && current_byte <= SCRIPT_DATA_LENGTH_END {
 			// push the following bytes as data on the stack
 			data := make([]byte, current_byte)
-			reader.Read(data)
+			io.ReadFull(reader, data)
 			cmds = append(cmds, data)
 			count += int64(current_byte)
 		} else if current_byte == OP_PUSHDATA1 {
 			length := make([]byte, 1)
-			reader.Read(length)
+			io.ReadFull(reader, length)
 			data := make([]byte, length[0])
 			reader.Read(data)
 			cmds = append(cmds, data)
 			count += int64(length[0] + 1)
 		} else if current_byte == OP_PUSHDATA2 {
 			lenBuf := make([]byte, 2)
-			reader.Read(lenBuf)
+			io.ReadFull(reader, lenBuf)
 			length := LittleEndianToBigInt(lenBuf, LITTLE_ENDIAN_2_BYTES)
 			data := make([]byte, length.Int64())
 			cmds = append(cmds, data)
@@ -95,7 +96,7 @@ func (s *ScriptSig) Evaluate(z []byte) bool {
 		return false
 	}
 
-	if len(s.bitcoinOpCode.stack[0]) == 0 {
+	if len(s.bitcoinOpCode.stack[len(s.bitcoinOpCode.stack)-1]) == 0 {
 		return false
 	}
 

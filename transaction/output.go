@@ -3,6 +3,7 @@ package transaction
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"math/big"
 )
 
@@ -15,7 +16,7 @@ type TransactionOutput struct {
 // Creates a new transaction output from a binary reader
 func NewTransactionOutput(reader *bufio.Reader) *TransactionOutput {
 	amountBuf := make([]byte, 8)
-	reader.Read(amountBuf)
+	io.ReadFull(reader, amountBuf)
 	amount := LittleEndianToBigInt(amountBuf, LITTLE_ENDIAN_8_BYTES)
 	script := NewScriptSig(reader)
 	return &TransactionOutput{
