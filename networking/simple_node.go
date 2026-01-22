@@ -2,9 +2,13 @@ package networking
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"net"
 	"time"
+
+	bloomfilter "github.com/sudonite/bitcoin/bloom_filter"
+	merkletree "github.com/sudonite/bitcoin/merkle_tree"
 )
 
 // Message interface defines the methods any Bitcoin network message must implement.
@@ -42,6 +46,45 @@ func (s *SimpleNode) Run() {
 	s.GetHeaders(conn)
 }
 
+func (s *SimpleNode) GetData(conn net.Conn) {
+	// prepare bloom filter
+	txHash, err := hex.DecodeString("1df77b894e1910628714bb73df59e20fb9114f9dcc051d8c03ca197dd112cc8a")
+	if err != nil {
+		panic(err)
+	}
+	bf := bloomfilter.NewBloomFilter(30, 5, 90210)
+	// set up bloomfilter ask full node to return any transaction of whichs id
+	// map to buckets that have all value 1
+	bf.Add(txHash)
+	// send filterload
+	s.Send(conn, bf.FilterLoadMsg())
+	getdata := bloomfilter.NewGetDataMessage()
+	receiveMerkleBlock := false
+
+	blockHash, _ := hex.DecodeString("0000000000000138f016a6fc1666fd667b7d282d65ad14b7f0b16a75a2e90e50")
+	getdata.AddData(bloomfilter.FilteredDataType(), blockHash)
+	s.Send(conn, getdata)
+
+	for !receiveMerkleBlock {
+		// let the peer have a rest
+		time.Sleep(2 * time.Second)
+		msgs := s.Read(conn)
+		for i := 0; i < len(msgs); i++ {
+			msg := msgs[i]
+			fmt.Printf("receiving command: %s\n", msg.command)
+			command := string(bytes.Trim(msg.command, "\x00"))
+
+			if command == "merkleblock" {
+				merkleBlock := merkletree.ParseMerkleBlock(msg.payload)
+				fmt.Printf("merkleblock received: %s\n", merkleBlock)
+				fmt.Printf("merkleblock valid:%v\n", merkleBlock.IsValid())
+				receiveMerkleBlock = true
+			}
+
+		}
+	}
+}
+
 // GetHeaders sends a "getheaders" message and waits for "headers" response from the peer.
 func (s *SimpleNode) GetHeaders(conn net.Conn) {
 	// after handshaking we send get header request
@@ -51,7 +94,7 @@ func (s *SimpleNode) GetHeaders(conn net.Conn) {
 	s.Send(conn, getHeadersMsg)
 	receivedGetHeader := false
 	for !receivedGetHeader {
-		//let the peer have a rest
+		// let the peer have a rest
 		time.Sleep(2 * time.Second)
 		msgs := s.Read(conn)
 		for i := 0; i < len(msgs); i++ {
