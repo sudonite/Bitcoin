@@ -94,8 +94,10 @@ func ReadVarint(reader *bufio.Reader) *big.Int {
 func EncodeVarint(v *big.Int) []byte {
 	if v.Cmp(big.NewInt(0xfd)) < 0 {
 		vBytes := v.Bytes()
-		fmt.Printf("slice: %+v\n", vBytes)
-		return []byte{vBytes[0]}
+		if len(vBytes) != 0 {
+			return []byte{vBytes[0]}
+		}
+		return []byte{0x00}
 	} else if v.Cmp(big.NewInt(0x10000)) < 0 {
 		buf := []byte{0xfd}
 		vBuf := BigIntToLittleEndian(v, LITTLE_ENDIAN_2_BYTES)

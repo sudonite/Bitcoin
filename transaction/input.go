@@ -15,6 +15,7 @@ type TransactionInput struct {
 	scriptSig                *ScriptSig
 	sequence                 *big.Int
 	fetcher                  *TransactionFetcher
+	witness                  [][]byte
 }
 
 // Parses a transaction input from a binary reader

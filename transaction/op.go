@@ -137,6 +137,7 @@ type BitcoinOpCode struct {
 	stack       [][]byte
 	altStack    [][]byte
 	cmds        [][]byte
+	witness     [][]byte
 }
 
 // Creates a new BitcoinOpCode instance with opcode names initialized.
@@ -597,4 +598,19 @@ func (b *BitcoinOpCode) isP2sh() bool {
 	}
 
 	return true
+}
+
+// handleP2wpkh detects and expands a P2WPKH script into equivalent P2PKH commands for execution
+func (b *BitcoinOpCode) handleP2wpkh() {
+	if len(b.cmds) == 2 && b.cmds[0][0] == OP_0 && len(b.cmds[1]) == 20 {
+		b.RemoveCmd()
+		// remove OP_0
+		h160 := b.RemoveCmd()
+
+		// set up signature and pubkey
+		b.cmds = append(b.cmds, b.witness...)
+		// set up p2pk verify command
+		p2sh := P2pkScript(h160)
+		b.cmds = append(b.cmds, p2sh.bitcoinOpCode.cmds...)
+	}
 }

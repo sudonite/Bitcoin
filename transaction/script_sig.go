@@ -77,8 +77,15 @@ func InitScriptSig(cmds [][]byte) *ScriptSig {
 	}
 }
 
+// SetWitness attaches the witness stack to the script for SegWit script evaluation
+func (s *ScriptSig) SetWitness(witness [][]byte) {
+	s.bitcoinOpCode.witness = witness
+}
+
 // Executes all commands in the ScriptSig against the given message hash `z`
 func (s *ScriptSig) Evaluate(z []byte) bool {
+	s.bitcoinOpCode.handleP2wpkh()
+
 	for s.bitcoinOpCode.HasCmd() {
 		cmd := s.bitcoinOpCode.RemoveCmd()
 		if len(cmd) == 1 {
